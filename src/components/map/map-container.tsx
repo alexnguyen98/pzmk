@@ -1,29 +1,30 @@
 "use client";
 
-import { PostMapBodyPayloadType } from "@/app/api/map/route";
+import { Loading } from "@/components/map/loading";
+import { useMapData } from "@/hooks/use-map-data";
 import { MAP_STYLE } from "@/lib/const";
-import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import maplibregl, { Map } from "maplibre-gl";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 export const MapContainer = () => {
   const ref = useRef<HTMLDivElement>(null);
   const map = useRef<Map>(null);
+  const router = useRouter();
 
-  const { data, isLoading } = useQuery<PostMapBodyPayloadType>({
-    queryKey: [],
-    queryFn: async () => {
-      const { data } = await axios.post("/api/map", {
-        lat: 0,
-        lng: 0,
-        zoom: 0,
-      });
-      return data;
-    },
-  });
+  const { query, lat, lng, zoom } = useMapData();
 
-  console.log(data);
+  const handleMoveEnd = () => {
+    const center = map.current!.getCenter();
+    const zoom = map.current!.getZoom();
+
+    const params = new URLSearchParams();
+    params.set("lat", center.lat.toString());
+    params.set("lng", center.lng.toString());
+    params.set("zoom", zoom.toString());
+
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
 
   useEffect(() => {
     // Initialize map only once
@@ -32,11 +33,18 @@ export const MapContainer = () => {
     map.current = new maplibregl.Map({
       container: ref.current,
       style: MAP_STYLE,
+      center: [lng, lat],
+      zoom,
+    });
+
+    map.current.on("moveend", () => {
+      handleMoveEnd();
     });
   }, []);
 
   return (
     <div className="relative">
+      {query.isLoading && <Loading />}
       <div ref={ref} className="h-svh w-full"></div>
     </div>
   );
