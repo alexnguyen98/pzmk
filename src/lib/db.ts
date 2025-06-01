@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 
 export interface DataItem {
-  kn_id?: number;
+  kn_id: number;
   lv?: string;
   par_kn_id?: number | null;
   row_id?: string;

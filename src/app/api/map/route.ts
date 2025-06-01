@@ -8,8 +8,8 @@ import { z } from "zod";
 export const POST = withAuth(async ({ req }) => {
   const body = schema.parse(await parseReqBody(req));
 
-  const points: PostMapBodyPayloadType["points"] = [];
-  const polygons: PostMapBodyPayloadType["polygons"] = [];
+  const points: PostMapPayloadType["points"] = [];
+  const polygons: PostMapPayloadType["polygons"] = [];
 
   const data = db.getAll();
 
@@ -17,13 +17,13 @@ export const POST = withAuth(async ({ req }) => {
     // Show clusters
     if (body.zoom < ZOOM_THRESHOLD) {
       points.push({
-        id: item.id,
+        id: item.kn_id,
         geojson: item.def_point,
       });
       // Show polygons
     } else {
       polygons.push({
-        id: item.id,
+        id: item.kn_id,
         geojson: item.coordinates,
       });
     }
@@ -32,7 +32,7 @@ export const POST = withAuth(async ({ req }) => {
   return NextResponse.json({
     points,
     polygons,
-  } satisfies PostMapBodyPayloadType);
+  } satisfies PostMapPayloadType);
 });
 
 const schema = z.object({
@@ -41,13 +41,13 @@ const schema = z.object({
   zoom: z.number().min(0).max(24),
 });
 export type PostMapBodyType = z.infer<typeof schema>;
-export type PostMapBodyPayloadType = {
+export type PostMapPayloadType = {
   points: {
-    id: string;
+    id: number;
     geojson: DataItem["coordinates"];
   }[];
   polygons: {
-    id: string;
+    id: number;
     geojson: DataItem["coordinates"];
   }[];
 };

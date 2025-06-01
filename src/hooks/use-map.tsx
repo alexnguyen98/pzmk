@@ -1,4 +1,4 @@
-import { PostMapBodyPayloadType } from "@/app/api/map/route";
+import { PostMapPayloadType } from "@/app/api/map/route";
 import { MAP_STYLE } from "@/lib/const";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
@@ -11,6 +11,7 @@ export const useMap = (ref: RefObject<HTMLDivElement | null>) => {
   const map = useRef<Map>(null);
   const router = useRouter();
 
+  const [activeItem, setActiveItem] = useState<string | null>(null);
   const [styleLoaded, setStyleLoaded] = useState(false);
 
   const search = useSearchParams();
@@ -18,7 +19,7 @@ export const useMap = (ref: RefObject<HTMLDivElement | null>) => {
   const lng = search.get("lng") ? parseFloat(search.get("lng")!) : 15.339;
   const zoom = search.get("zoom") ? parseFloat(search.get("zoom")!) : 6.76;
 
-  const query = useQuery<PostMapBodyPayloadType>({
+  const query = useQuery<PostMapPayloadType>({
     queryKey: ["map", lat, lng, zoom],
     queryFn: async () => {
       const { data } = await axios.post("/api/map", {
@@ -29,18 +30,6 @@ export const useMap = (ref: RefObject<HTMLDivElement | null>) => {
       return data;
     },
   });
-
-  const handleMoveEnd = () => {
-    const center = map.current!.getCenter();
-    const zoom = map.current!.getZoom();
-
-    const params = new URLSearchParams();
-    params.set("lat", center.lat.toString());
-    params.set("lng", center.lng.toString());
-    params.set("zoom", zoom.toString());
-
-    router.replace(`?${params.toString()}`, { scroll: false });
-  };
 
   const updatePolygons = () => {
     const source = map.current!.getSource("polygon-data");
@@ -88,6 +77,15 @@ export const useMap = (ref: RefObject<HTMLDivElement | null>) => {
           "line-width": 3,
           "line-opacity": 1,
         },
+      });
+
+      map.current!.on("click", "polygons-fill", (e) => {
+        if (e.features && e.features.length > 0) {
+          const feature = e.features[0];
+          const polygonId = feature.properties?.id;
+
+          if (polygonId) setActiveItem(polygonId);
+        }
       });
     }
   };
@@ -179,6 +177,18 @@ export const useMap = (ref: RefObject<HTMLDivElement | null>) => {
     }
   };
 
+  const handleMoveEnd = () => {
+    const center = map.current!.getCenter();
+    const zoom = map.current!.getZoom();
+
+    const params = new URLSearchParams();
+    params.set("lat", center.lat.toString());
+    params.set("lng", center.lng.toString());
+    params.set("zoom", zoom.toString());
+
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
+
   const handleUpdateMap = () => {
     updatePolygons();
     updatePoints();
@@ -211,9 +221,8 @@ export const useMap = (ref: RefObject<HTMLDivElement | null>) => {
   useEffect(() => {
     if (!query.data || !map.current || !styleLoaded) return;
 
-    console.log("Updating map with new data");
     handleUpdateMap();
   }, [query.data, styleLoaded]);
 
-  return query;
+  return { query, activeItem, setActiveItem };
 };
