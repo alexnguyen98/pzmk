@@ -1,4 +1,5 @@
 import { withAuth } from "@/lib/auth";
+import { getBoundingBox } from "@/lib/bbox";
 import { ZOOM_THRESHOLD } from "@/lib/const";
 import { DataItem, db } from "@/lib/db";
 import { parseReqBody } from "@/lib/request";
@@ -13,7 +14,22 @@ export const POST = withAuth(async ({ req }) => {
 
   const data = db.getAll();
 
-  for (const item of data) {
+  const boundingBox = getBoundingBox(body.lat, body.lng, body.zoom);
+
+  // Filter data based on bounding box
+  const filtered = data.filter((item) => {
+    if (!item.def_point?.coordinates) return false;
+    const [itemLng, itemLat] = item.def_point.coordinates;
+
+    return (
+      itemLat >= boundingBox.south &&
+      itemLat <= boundingBox.north &&
+      itemLng >= boundingBox.west &&
+      itemLng <= boundingBox.east
+    );
+  });
+
+  for (const item of filtered) {
     // Show clusters
     if (body.zoom < ZOOM_THRESHOLD) {
       points.push({
