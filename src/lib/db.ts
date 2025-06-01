@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-interface DataItem {
+export interface DataItem {
   kn_id?: number;
   lv?: string;
   par_kn_id?: number | null;
@@ -34,7 +34,7 @@ class MockDB {
     }
   }
 
-  get(): DataItem[] {
+  getAll(): DataItem[] {
     return this.data;
   }
 
